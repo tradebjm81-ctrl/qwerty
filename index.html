@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Chatbot</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+    /* Tailwind and custom CSS styles */
+    body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 1rem; }
+    .chat-container { width: 100%; max-width: 640px; height: 80vh; display: flex; flex-direction: column; background-color: white; border-radius: 1.5rem; box-shadow: 0 10px 15px rgba(0,0,0,0.1); overflow: hidden; }
+    .chat-header { background-color: #4a90e2; color: white; padding: 1.5rem; text-align: center; font-size: 1.5rem; font-weight: bold; border-top-left-radius: 1.5rem; border-top-right-radius: 1.5rem; }
+    .chat-messages { flex-grow: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; background-color: #e5e7eb; }
+    .message { max-width: 80%; padding: 0.75rem 1rem; border-radius: 1rem; word-wrap: break-word; }
+    .user-message { background-color: #4a90e2; color: white; align-self: flex-end; border-bottom-right-radius: 0.25rem; }
+    .bot-message { background-color: #ffffff; color: #374151; align-self: flex-start; border-bottom-left-radius: 0.25rem; }
+    .chat-input-form { display: flex; padding: 1rem; background-color: #f9fafb; border-bottom-left-radius: 1.5rem; border-bottom-right-radius: 1.5rem; gap: 0.5rem; }
+    .chat-input { flex-grow: 1; padding: 0.75rem; border-radius: 9999px; border: 1px solid #d1d5db; outline: none; transition: border-color 0.3s; }
+    .chat-input:focus { border-color: #4a90e2; }
+    .send-button { padding: 0.75rem 1.5rem; background-color: #4a90e2; color: white; border: none; border-radius: 9999px; cursor: pointer; transition: background-color 0.3s; }
+    .send-button:hover { background-color: #3b74b2; }
+    .send-button:disabled { background-color: #9ca3af; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="chat-header">AI Chatbot</div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <form class="chat-input-form" id="chat-form">
+        <input type="text" id="chat-input" class="chat-input" placeholder="Type your message...">
+        <button type="submit" id="send-button" class="send-button">Send</button>
+    </form>
+</div>
+
+<script>
+const chatForm = document.getElementById('chat-form');
+const chatInput = document.getElementById('chat-input');
+const chatMessages = document.getElementById('chat-messages');
+const sendButton = document.getElementById('send-button');
+
+// The API key is now replaced in the line below
+const apiKey = "AIzaSyDwAduy3dmLMUIKIxFUD_wb3UsUArB50AY"; 
+const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+// Display message in chat
+function displayMessage(text, sender) {
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', sender === 'user' ? 'user-message' : 'bot-message');
+    messageDiv.innerText = text;
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Enable/disable send button
+function setLoading(isLoading) {
+    sendButton.disabled = isLoading;
+    sendButton.innerText = isLoading ? '...' : 'Send';
+}
+
+chatForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const userQuery = chatInput.value.trim();
+    if (!userQuery) return;
+
+    displayMessage(userQuery, 'user');
+    chatInput.value = '';
+    setLoading(true);
+
+    const payload = { contents: [{ parts: [{ text: userQuery }] }] };
+
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorText = `API call failed with status ${response.status}. Please check your API key and network connection.`;
+            throw new Error(errorText);
+        }
+        
+        const result = await response.json();
+        const candidate = result.candidates?.[0];
+        const text = candidate?.content?.parts?.[0]?.text || "Sorry, I couldn't generate a response.";
+        displayMessage(text, 'bot');
+    } catch (error) {
+        console.error(error);
+        displayMessage("An error occurred. Please try again.", 'bot');
+    } finally {
+        setLoading(false);
+    }
+});
+
+// Initial bot message
+displayMessage("Hello! I am an AI assistant. How can I help you today?", 'bot');
+</script>
+
+</body>
+</html>
